@@ -1,0 +1,527 @@
+﻿REM @options --explicit --strict --strict-bool
+
+#include <ucase.bas>
+#include <input.bas>
+
+CONST PlaySoundEffects AS UBYTE = 1
+
+CONST maxY AS UBYTE = 10 ' TODO: cap
+CONST maxX AS UBYTE = 15 ' TODO: cap
+CONST MaxCalculationLevel AS UBYTE = 13
+
+CONST FlagLeft AS UBYTE = 1
+CONST FlagDown AS UBYTE = 2
+CONST FlagUp AS UBYTE = 3
+CONST FlagRight AS UBYTE = 4
+CONST FlagSnake AS UBYTE = 64
+CONST FlagMouse AS UBYTE = 128
+
+DIM StateInitialize AS STRING = "Initialize"
+DIM StateShowHighScores AS STRING = "ShowHighScores"
+DIM StateShowInstructions AS STRING = "ShowInstructions"
+DIM StateStartGame AS STRING = "StartGame"
+DIM StatePlayGame AS STRING = "PlayGame"
+
+DIM State As STRING = StateInitialize
+
+DIM reverseDirection(4) AS UBYTE => {0, 4, 3, 2, 1}
+
+SUB ClearPosition(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE)
+    refGrid(y, x) = 0
+END SUB
+
+SUB SetPosition(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE, value AS UBYTE)
+    refGrid(y, x) = value
+END SUB
+
+SUB SetMouse(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE)
+    SetPosition(refGrid, y, x, FlagMouse)
+END SUB
+
+SUB SetSnake(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE, value AS UBYTE)
+    SetPosition(refGrid, y, x, FlagSnake BOR value)
+END SUB
+
+FUNCTION GetPosition(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE) AS UBYTE
+    RETURN refGrid(y, x)
+END FUNCTION
+
+SUB ClearMouse(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE)
+    DIM value AS UBYTE = GetPosition(refGrid, y, x)
+    SetPosition(refGrid, y, x, value BAND 127)
+END SUB
+
+FUNCTION IsMouse(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE) AS BYTE
+    RETURN GetPosition(refGrid, y, x) BAND FlagMouse = FlagMouse
+END FUNCTION
+
+SUB ShowMouse(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE)
+    PRINT AT 2 * y, 2 * x; INK 2; PAPER 6; FLASH 1; "\A"
+END SUB
+
+SUB GetAdjecentPosition(direction AS UBYTE, BYREF y AS UBYTE, BYREF x AS UBYTE)
+    IF direction = FlagLeft THEN
+        x = x - 1
+    ELSEIF direction = FlagRight THEN
+        x = x + 1
+    ELSEIF direction = FlagUp THEN
+        y = y - 1
+    ELSEIF direction = FlagDown THEN
+        y = y + 1
+    END IF
+END SUB
+
+SUB ShowSnake(BYREF refGrid() AS UBYTE, y AS UBYTE, x AS UBYTE)
+    DIM value AS UBYTE = GetPosition(refGrid, y, x)
+    DIM pValue AS UBYTE = (value >> 3) BAND 7
+
+    DIM ys AS UBYTE = y << 1
+    DIM xs AS UBYTE = x << 1
+
+    PRINT AT ys, xs; INK 3; "\O"
+    GetAdjecentPosition(pValue, ys, xs)
+    PRINT AT ys, xs; INK 3; "\O"
+END SUB
+
+SUB ClearSnake(BYREF refGrid() AS UBYTE, BYREF y AS UBYTE, BYREF x AS UBYTE)
+    DIM ys  AS UBYTE = y << 1
+    DIM xs  AS UBYTE = x << 1
+    DIM value AS UBYTE = GetPosition(refGrid, y, x)
+    DIM pValue AS UBYTE = value >> 3 BAND 7
+    DIM nValue AS UBYTE = value BAND 7
+
+    PRINT AT ys, xs; " "
+    GetAdjecentPosition(pValue, ys, xs)
+    PRINT AT ys, xs; " "
+
+    GetAdjecentPosition(nValue, y, x)
+
+END SUB
+
+SUB InitializeUserDefinedGraphic()
+    DIM cindex AS UBYTE
+    DIM rindex AS UBYTE
+    DIM row AS UBYTE
+    DIM b$ AS STRING
+
+    FOR cindex = 1 TO 2
+        READ b$
+        FOR rindex = 0 TO 7
+            READ row
+            POKE USR b$ + rindex, row
+        NEXT rindex
+    NEXT cindex
+    DATA "\O",60,126,126,255,255,126,126,60
+    DATA "\A",0,0,60,60,60,60,0,0
+END SUB
+
+SUB InitializeScreen()
+    BORDER 0
+    PAPER 0
+    INK 4
+    BRIGHT 1
+    CLS
+END SUB
+
+SUB InitializeHighScores(BYREF refHighScores() AS ULONG, BYREF refHighScoreInitials() AS STRING)
+    DIM index AS UBYTE
+
+    FOR index = 0 TO 9
+        refHighScores(index) = 1000 * (10 - index)
+        refHighScoreInitials(index, 1) = "----"
+    NEXT index
+END SUB
+
+SUB ShowHighScoreAnimation()
+    DIM xp AS INTEGER
+    DIM yp AS INTEGER
+    DIM xl AS INTEGER
+    DIM yl AS INTEGER
+    DIM key$ AS STRING
+    
+    xp = 0
+    yp = 16 ' for now, imitate original
+    xl = 255
+    yl = 175
+
+    State = StateShowInstructions
+
+    WHILE yl > 0
+        OVER 1
+        PLOT xp, yp
+        DRAW xl, 0
+        DRAW 0, yl
+        DRAW -xl, 0
+        DRAW 0, -yl + 1
+        OVER 0
+
+        xp = xp + 1
+        yp = yp + 1
+        xl = xl - 2
+        yl = yl - 2
+
+        key$ = UCASE(INKEY$)
+        
+        IF key$ = "I" THEN EXIT WHILE
+        IF key$ = "P" THEN State = StateStartGame: EXIT WHILE
+        IF key$ = "Q" THEN CLS: STOP ' TODO: stop state
+
+        PAUSE 10
+    WEND
+END SUB
+
+SUB SaveHighScore(BYREF refHighScores() AS ULONG, BYREF refHighScoreInitials() AS STRING, score AS ULONG)
+
+    IF score < refHighScores(9) THEN RETURN
+
+    CLS
+
+    PRINT AT 4, 7; "CONGRATULATIONS!!!"
+    PRINT "YOUR INITIALS,PLEASE!!!"
+    DIM initials AS STRING  = "...." ' TODO: doesn't work anymore?!?!
+
+    initials = INPUT(4)
+
+    DIM index AS UBYTE = 9
+    WHILE index > 0 AND score > refHighScores(index - 1)
+        refHighScores(index) = refHighScores(index - 1)
+        refHighScoreInitials(index, 1) = refHighScoreInitials(index - 1, 1)
+        index = index - 1
+    WEND
+    refHighScores(index) = score
+    refHighScoreInitials(index, 1) = initials(0 TO 3)
+
+END SUB
+
+SUB ShowHighScores(BYREF refHighScores() AS ULONG, BYREF refHighScoreInitials() AS STRING)
+    DIM index AS UBYTE
+    DIM y AS UBYTE
+
+    CLS
+
+    PRINT AT 2,12; INK 3;"SNAKER"
+    PRINT AT 6,4; "HI-SCORE"; AT 6,21; "INITIALS"
+    FOR index = 0 TO 9
+        y = 8 + index
+        PRINT AT y, 2; index + 1; AT y, 6; refHighScores(index); AT y, 21; refHighScoreInitials(index, 1)
+    NEXT index
+
+    PRINT AT 19,1; "Play (P), Instructions (I) or"
+    PRINT AT 20,1; "Quit (Q)"
+
+    ShowHighScoreAnimation()
+
+END SUB
+
+SUB ShowInstructions()
+    DIM i AS UBYTE
+
+    CLS
+
+    FOR i = 7 TO 4 STEP -1: INK i
+        PRINT AT 2, 12;"SNAKER"; AT 4,0; "Move snake with the CURSOR keys","and munch the dots in the field","Try to avoid a crash with the","body of the snake","When you come further into the","game the snake starts longer","while your time","is less"; AT 13,11;"Good luck!"
+        PlaySoundEatMouse()
+        PAUSE 10
+    NEXT i
+    PAUSE 0
+
+END SUB
+
+SUB InitializeLevel(BYREF refGrid() AS UBYTE)
+    DIM y AS UBYTE
+    DIM x AS UBYTE
+
+    CLS
+
+    FOR y = 0 TO maxY - 1
+        PRINT AT 2 * y + 1, 0;" \A \A \A \A \A \A \A \A \A \A \A \A \A \A \A "
+    NEXT y
+    
+    RANDOMIZE
+    DIM index AS UBYTE    
+    FOR y = 0 TO maxY
+        FOR x = 0 TO maxX
+            ClearPosition(refGrid, y, x)
+        NEXT x
+        IF y = 0 THEN CONTINUE FOR
+        index = 2
+        WHILE index > 0
+            x = INT(RND * (maxX + 1))
+            IF IsMouse(refGrid, y, x) THEN CONTINUE WHILE
+            SetMouse(refGrid, y, x)
+            ShowMouse(refGrid, y, x)
+            index = index - 1
+        END WHILE
+    NEXT y
+ 
+END SUB
+
+SUB ShowStatus(time AS UINTEGER, score AS ULONG, level AS UBYTE, lives AS UBYTE)
+    PRINT AT 22, 0; "Time>  "; time;  " "; AT 22,23; "Level> "; level
+    PRINT AT 23, 0; "Score> "; score;      AT 23,23; "Lives> "; lives
+END SUB
+
+SUB InitializeSnake(BYREF refGrid() AS UBYTE, level AS UBYTE)
+    DIM x AS UBYTE
+    DIM mask AS UBYTE = (8 * FlagLeft) BOR FlagRight
+    DIM length AS UBYTE
+
+    length = 2 + level
+    if length > maxX THEN length = maxX
+    
+    FOR x = 1 TO length
+        SetSnake(refGrid, 0, x, mask)
+        ShowSnake(refGrid, 0, x)
+    NEXT x
+END SUB
+
+SUB ClearTail(BYREF refGrid() AS UBYTE, BYREF y AS UBYTE, BYREF x AS UBYTE)
+    DIM yo AS UBYTE = y
+    DIM xo AS UBYTE = x
+    ClearSnake(refGrid, y, x)    
+    ClearPosition(refGrid, yo, xo)
+END SUB
+
+
+SUB PlaySoundExplosion()
+IF PlaySoundEffects = 0 RETURN
+ASM
+    PUSH    IX
+	LD		A, ($5C48)
+	RRA
+	RRA
+	RRA
+	AND		$07
+	POP		HL
+	PUSH	HL
+	LD		E,A
+	LD		C,$00
+exp_1
+	LD		D,$0F
+exp_2
+	LD		A,(HL)
+	AND		$10
+	ADD		A,E
+	OUT		($FE),A
+	LD		B,C
+exp_3
+	DJNZ	exp_3
+	INC		HL
+	DEC		D
+	JR		NZ,exp_2
+	DEC		C
+	JR		NZ,exp_1
+    POP IX
+END ASM
+END SUB
+
+SUB PlaySoundEatMouse()
+IF PlaySoundEffects = 0 RETURN
+ASM
+	PUSH	IX
+	LD		BC,$0050
+	LD		HL,$0500
+zap
+	SBC		HL,BC		
+	LD		DE,$0001
+	PUSH	HL
+	PUSH	BC
+	CALL	$03B5
+	POP		BC
+	POP		HL
+	LD		A,H
+	AND		A
+	JR		NZ,zap
+	POP		IX
+END ASM
+END SUB
+
+'''
+''' HelperFunctions
+'''
+
+SUB GetDirection(BYREF direction AS UBYTE, y AS UBYTE, x AS UBYTE)
+    DIM newDirection AS INTEGER = INT(VAL(INKEY$)) - 4
+
+    IF newDirection >= FlagLeft AND newDirection <= FlagRight THEN 
+        IF (newDirection = FlagLeft AND x > 0) OR (newDirection = FlagRight AND x < maxX) OR (newDirection = FlagUp AND y > 0) OR (newDirection = FlagDown AND y < maxY) THEN
+            IF reverseDirection(direction) <> newDirection THEN
+                direction = newDirection
+            END IF
+        END IF
+    END IF
+END SUB
+
+' TODO: FUNCTION does NOT work
+SUB MoveSnake(BYREF refGrid() AS UBYTE, BYREF y AS UBYTE, BYREF x AS UBYTE, BYREF direction AS UBYTE, BYREF pType AS UBYTE, BYREF hasMoved AS UBYTE)
+    
+    DIM dx AS UBYTE = 0
+    DIM dy AS UBYTE = 0
+    
+    pType = 0
+    hasMoved = 0
+
+    GetDirection(direction, y, x)
+
+    GetAdjecentPosition(direction, dy, dx)
+
+    IF y + dy < 0 OR y + dy > maxY OR x + dx < 0 OR x + dx > maxX THEN
+        RETURN
+    END IF
+
+    DIM value AS UBYTE = GetPosition(refGrid, y, x)
+    value = (value BAND 248) BOR direction
+    SetPosition(refGrid, y, x, value) ' SetSnake ?
+
+    x = x + dx
+    y = y + dy
+
+    value = GetPosition(refGrid, y, x)
+    pType = value BAND (FlagMouse BOR FlagSnake)
+    value = pType BOR (reverseDirection(direction) << 3) BOR direction
+
+    SetSnake(refGrid, y, x, value)
+    ShowSnake(refGrid, y, x)
+
+    hasMoved = 1    
+
+END SUB
+
+SUB RollupSnake(BYREF refGrid() AS UBYTE, BYREF yt AS UBYTE, BYREF xt AS UBYTE, y AS UBYTE, x AS UBYTE)
+    ' TODO: doesn't clear complete snake
+    WHILE yt <> y OR xt <> x
+        ClearTail(refGrid, yt, xt)
+        PAUSE 5
+    WEND
+END SUB
+
+'''
+''' State Functions
+'''
+
+SUB Initialize(BYREF refHighScores() AS ULONG, BYREF refHighScoreInitials() AS STRING)
+    InitializeUserDefinedGraphic()
+    InitializeScreen()
+    InitializeHighScores(refHighScores, refHighScoreInitials)
+END SUB
+
+SUB StartGame(BYREF refGrid() AS UBYTE, BYREF level AS UBYTE, BYREF lives AS UBYTE)
+    InitializeLevel(refGrid)    
+    InitializeSnake(refGrid, level)
+END SUB
+
+FUNCTION CalculateTailCount(level AS UBYTE) AS UINTEGER
+    IF level > MaxCalculationLevel THEN level = MaxCalculationLevel
+    RETURN maxX - level
+END FUNCTION
+
+FUNCTION CalculateStartTime(level AS UBYTE) AS UINTEGER
+    IF level > MaxCalculationLevel THEN level = MaxCalculationLevel
+    RETURN 500 - 20 * (level - 1)
+END FUNCTION
+
+SUB PlayGame(BYREF refGrid() AS UBYTE, BYREF level AS UBYTE, BYREF lives AS UBYTE, BYREF score AS ULONG)    
+    DIM y AS UBYTE = 0
+    DIM x AS UBYTE
+    DIM yt AS UBYTE = 0
+    DIM xt AS UBYTE = 1    
+    DIM direction AS UBYTE = FlagRight
+    DIM pType AS UBYTE = 0
+    DIM hasMoved AS UBYTE
+    DIM time AS UINTEGER = CalculateStartTime(level)
+    DIM tailCount AS UBYTE = CalculateTailCount(level)
+    DIM miceCount AS UBYTE = 20
+
+    ' TODO: see InitializeSnake
+    x = 2 + level
+    if x > maxX THEN x = maxX
+
+    WHILE State = StatePlayGame
+
+        PAUSE 10
+
+        time = time - 1
+
+        ShowStatus(time, score, level, lives)
+
+        'GetDirection(direction)
+        MoveSnake(refGrid, y, x, direction, pType, hasMoved)
+
+        IF hasMoved = 0 AND time > 0 THEN CONTINUE WHILE
+
+        IF (pType BAND FlagSnake = FlagSnake) OR time = 0 THEN
+            PlaySoundExplosion()
+            RollupSnake(refGrid, yt, xt, y, x)
+            lives = lives - 1
+            IF lives > 0 THEN
+                State = StateStartGame
+            ELSE
+                State = StateShowHighScores
+            END IF
+        END IF
+
+        IF pType BAND FlagMouse = FlagMouse THEN
+            score = score + 50
+            ClearMouse(refGrid, y, x)
+            PlaySoundEatMouse()
+            miceCount = miceCount - 1
+            IF miceCount = 0 THEN                
+                ' TODO: sound, visual?
+                score = score + 10 * time
+                level = level + 1
+                IF level MOD 5 = 0 THEN
+                    lives = lives + 1
+                END IF
+                State = StateStartGame
+            END IF
+        END IF        
+
+        tailCount = tailCount - 1
+        IF tailCount > 0 THEN
+            ClearTail(refGrid, yt, xt)
+        ELSE
+            tailCount = CalculateTailCount(level) ' TODO: duplicate
+        END IF
+    WEND
+
+END SUB
+
+SUB Main()
+    
+    DIM grid(maxY, maxX) AS UBYTE
+    DIM highScores(9) AS ULONG
+    DIM highScoreInitials(9, 4) AS STRING
+    DIM level AS UBYTE = 1
+    DIM lives AS UBYTE = 3
+    DIM score AS ULONG = 0
+
+    WHILE 1 = 1
+        IF State = StateInitialize THEN
+            Initialize(highScores, highScoreInitials)
+            State = StateShowHighScores
+        END IF
+
+        IF State = StateShowHighScores THEN
+            SaveHighScore(highScores, highScoreInitials, score)
+            ShowHighScores(highScores, highScoreInitials)
+            level = 1: lives = 3: score = 0 ' TODO
+        END IF
+
+        IF State = StateShowInstructions THEN
+            ShowInstructions()
+            State = StateStartGame
+        END IF
+
+        IF State = StateStartGame THEN
+            StartGame(grid, level, lives)
+            State = StatePlayGame
+        END IF
+
+        IF State = StatePlayGame THEN            
+            PlayGame(grid, level, lives, score)
+        END IF
+    WEND 
+   
+END SUB
+
+Main()

@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <CustomProjectExtensionsPath>$(LocalAppData)\CustomProjectSystems\Spect.Net.CodeDiscover\</CustomProjectExtensionsPath>
+    <ProjectGuid>72d16fa1-63ce-4d19-bdb6-0cec7b095528</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(CustomProjectExtensionsPath)Spect.Net.CodeDiscover.props" />
+  <ItemGroup>
+    <DisassAnn Include="Annotations.disann" />
+    <SpConf Include="Rom\ZxSpectrum.spconf" />
+    <ProjConf Include="Spectrum.projconf" />
+    <Rom Include="Rom\ZxSpectrum48.rom" />
+    <DisassAnn Include="Rom\ZxSpectrum48.disann" />
+    <ZxBasic Include="ZxBasicFiles\snaker2021.zxbas" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Z80CodeFiles\" />
+    <Folder Include="Z80UnitTests\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Z80Asm Include="ZxBasicFiles\snaker2021.zxbas.z80asm" />
+  </ItemGroup>
+  <ItemGroup>
+    <Tzx Include="TapeFiles\snaker2021.tzx" />
+  </ItemGroup>
+  <Import Project="$(CustomProjectExtensionsPath)Spect.Net.CodeDiscover.targets" />
+</Project>

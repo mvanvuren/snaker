@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Snaker</title>
+    <meta
+      name="description"
+      content="Snaker, a ZX Spectrum game by M.F. Van Vuren"
+    />
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <link rel="stylesheet" href="jsspeccy.css" />
+    <script src="jdataview.js"></script>
+    <script src="jsspeccy-core.min.js"></script>
+    <script src="jquery-1.7.2.min.js"></script>
+    <script src="ui.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Helvetica, Arial, sans-serif;
+        color: #ddd;
+        background-color: #000;
+        background-image: url("snaker-s.jpg");
+        background-repeat: repeat;
+      }
+      #speccy {
+        position: absolute;
+        top: 8%;
+        left: 8%;
+        width: 640px;
+        height: 480px;
+      }
+    </style>
+    <script>
+      $(function () {
+        var jsspeccy = JSSpeccy("speccy", {
+          autostart: true,
+          autoload: true,
+          scaleFactor: 2,
+          loadFile: "snaker.z80",
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="speccy"></div>
+  </body>
+</html>
