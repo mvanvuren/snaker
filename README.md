@@ -68,4 +68,4 @@ Refactoring the original code was a lot of fun and in the process of it I even d
 - [SpecNet IDE](https://dotneteer.github.io/spectnetide/)
 - [ZX Basic](https://zxbasic.readthedocs.io/en/docs/)
 - [Spectrum ROM Disassembly](http://www.primrosebank.net/computers/zxspectrum/docs/CompleteSpectrumROMDisassemblyThe.pdf)
-- [T-Shirt](https://www.wish.com/product/5d81fbae530d9325de37bb93?hide_login_modal=true&from_ad=goog_shopping&_display_country_code=NL&_force_currency_code=EUR&pid=googleadwords_int&c={campaignId}&ad_cid=5d81fbae530d9325de37bb93&ad_cc=NL&ad_curr=EUR&ad_price=6.00&campaign_id=8182633582&exclude_install=true&gclid=EAIaIQobChMI4KjY7Ork8QIVis13Ch0h8AWnEAQYASABEgJamvD_BwE&share=web){:target="_blank"}
+- [T-Shirt](https://www.wish.com/product/5d81fbae530d9325de37bb93?hide_login_modal=true&from_ad=goog_shopping&_display_country_code=NL&_force_currency_code=EUR&pid=googleadwords_int&c={campaignId}&ad_cid=5d81fbae530d9325de37bb93&ad_cc=NL&ad_curr=EUR&ad_price=6.00&campaign_id=8182633582&exclude_install=true&gclid=EAIaIQobChMI4KjY7Ork8QIVis13Ch0h8AWnEAQYASABEgJamvD_BwE&share=web)
