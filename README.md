@@ -12,6 +12,8 @@ So I did...
 
 Using the Javascript ZX Spectrum emulator [JSSpeccy](https://github.com/gasman/jsspeccy3) you can play the game [here](https://snaker.mvanvuren.nl/).
 
+![Snaker!](/assets/sss.png "Snaker")
+
 ## The original code
 
 Getting the most performance out of the ZX Spectrum, every trick out of the book was used:
