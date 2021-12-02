@@ -58,7 +58,7 @@ It does not follow all software design principles we know nowadays, but it did t
 
 ## 2021
 
-Refactoring the original code was a lot of fun and in the process of it I even discovered a couple of bugs. I'm not sure if the [new code](https://github.com/mvanvuren/snaker/blob/master/snaker2021/snaker2021/ZxBasicFiles/snaker2021.zxbas) in it's current state is better understandable than the original ;-)
+Refactoring the original code was a lot of fun and in the process of it I even discovered a couple of bugs. I'm not sure if the [new code](https://github.com/mvanvuren/snaker/blob/master/snaker2021/snaker2021/ZxBasicFiles/snaker2021.zxbas) in it's current state is easier to understand than the original ;-)
 
 ## Links
 
